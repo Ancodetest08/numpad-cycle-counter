@@ -1,8 +1,12 @@
 # Numpad Cycle Counter
 
-Bộ đếm phím số theo chu kỳ, **đếm được cả khi bạn đang làm việc ở ứng dụng khác**. Mỗi chu kỳ (mặc định 15 phút) bạn xuất một dòng vào file CSV.
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)
 
-*A tiny always-on-top macOS window that counts the digit keys 0–9 pressed in any app and appends one CSV row per time cycle.*
+Bộ đếm phím số theo chu kỳ, **đếm được cả khi bạn đang làm việc ở ứng dụng khác**. Mỗi chu kỳ (mặc định 15 phút) bạn xuất một dòng vào file CSV. Phù hợp cho khảo sát, kiểm đếm hay ghi nhận nhanh bằng bàn phím.
+
+![Ảnh cửa sổ Bộ đếm](docs/screenshot.png)
 
 ## Tính năng
 
@@ -20,7 +24,7 @@ Bộ đếm phím số theo chu kỳ, **đếm được cả khi bạn đang là
 2. Tải mã nguồn và cài thư viện:
 
    ```bash
-   git clone https://github.com/<username>/numpad-cycle-counter.git
+   git clone https://github.com/ancodetest08/numpad-cycle-counter.git
    cd numpad-cycle-counter
    pip3 install -r requirements.txt
    ```
@@ -58,7 +62,17 @@ Start Time,End Time,Nam,Nữ,Tổng
 00:15,00:30,7,14,21
 ```
 
-Nếu các cột chú thích hiện tại khác tiêu đề của file đã có, script sẽ hỏi trước khi ghi tiếp.
+File có BOM nên Excel và Numbers đọc đúng tiếng Việt. Nếu các cột chú thích hiện tại khác tiêu đề của file đã có, script sẽ hỏi trước khi ghi tiếp.
+
+## Xử lý sự cố
+
+| Hiện tượng | Cách xử lý |
+| --- | --- |
+| Gõ số nhưng không đếm | Kiểm tra đã nhấn **Start** (trạng thái xanh "ĐANG ĐẾM") và đã cấp **Input Monitoring** + **Accessibility** cho Terminal; đóng và mở lại Terminal sau khi cấp quyền. |
+| Gõ số trong ô chú thích không đếm | Đúng thiết kế: khi cửa sổ đếm đang được chọn thì không đếm. Bấm sang ứng dụng khác. |
+| `ModuleNotFoundError: pynput` | Chạy `pip3 install -r requirements.txt` bằng đúng Python đang dùng để chạy script. |
+| Cửa sổ trống hoặc lỗi Tk | Dùng Python cài từ python.org thay cho bản có sẵn của macOS. |
+| Cảnh báo "This process is not trusted" | Terminal chưa có quyền **Accessibility**; cấp quyền như bước 3 ở trên. |
 
 ## Quyền riêng tư
 
@@ -70,6 +84,17 @@ Nếu các cột chú thích hiện tại khác tiêu đề của file đã có,
 - Số đếm chưa Export sẽ mất khi đóng cửa sổ.
 - Chu kỳ chỉ tăng khi bạn bấm Export, không tự chuyển theo đồng hồ.
 - Không có phím tắt toàn hệ thống cho Start/Stop/Undo (Backspace sẽ xoá chữ ở ứng dụng bạn đang gõ).
+
+## English summary
+
+A small always-on-top window that counts the digit keys 0–9 pressed in **any** application (global key listener via `pynput`) and appends one CSV row per time cycle (default 15 minutes). Give each key a label; labelled keys become the CSV columns. Built and tested on macOS (needs Input Monitoring and Accessibility permission for your terminal).
+
+```bash
+pip3 install -r requirements.txt
+python3 counter.py            # add --keypad-only to ignore the top digit row
+```
+
+The listener sees every key press but only acts on 0–9; nothing else is stored, logged or sent anywhere.
 
 ## Giấy phép
 
