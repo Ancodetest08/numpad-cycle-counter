@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Your collected data: do not publish it by accident
+counts_survey*.csv
+
+# macOS
+.DS_Store
