@@ -5,7 +5,8 @@ __pycache__/
 venv/
 
 # Your collected data: do not publish it by accident
-counts_survey*.csv
+counts_survey.csv
+*.csv
 
 # macOS
 .DS_Store

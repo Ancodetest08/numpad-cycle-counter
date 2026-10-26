@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Numpad Cycle Counter.
+"""Numpad Cycle Counter (macOS only).
 
 A small always-on-top window that counts the digit keys 0-9 pressed in ANY
 application (global key listener) and appends one CSV row per time cycle.
@@ -7,6 +7,9 @@ application (global key listener) and appends one CSV row per time cycle.
 While "Start" is on, every press of 0-9 increments that key's counter.
 "Export CSV" appends one row to counts_survey.csv (creating the file with a
 header if needed), resets the counters and moves to the next cycle.
+
+Only keys that have a note are exported, and the TOTAL shown in the window is
+the sum of those same keys, so it always matches the "Total" CSV column.
 
 Every launch starts fresh: Start Time 00:00, cycle 15 minutes, empty notes.
 Nothing is stored except the CSV file you export.
@@ -25,16 +28,8 @@ import sys
 ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]  # display and CSV order
 
 
-# --- Number pad key codes (pynput "vk") per platform -> digit ---------------
-def _keypad_map():
-    if sys.platform == "darwin":
-        return {82: 0, 83: 1, 84: 2, 85: 3, 86: 4, 87: 5, 88: 6, 89: 7, 91: 8, 92: 9}
-    if sys.platform == "win32":  # VK_NUMPAD0..9 (untested)
-        return {96 + d: d for d in range(10)}
-    return {0xFFB0 + d: d for d in range(10)}  # X11 KP_0..KP_9 (untested)
-
-
-KEYPAD_VK = _keypad_map()
+# --- macOS number pad key codes (pynput "vk") -> digit ----------------------
+KEYPAD_VK = {82: 0, 83: 1, 84: 2, 85: 3, 86: 4, 87: 5, 88: 6, 89: 7, 91: 8, 92: 9}
 
 
 def hhmm(total_minutes):
@@ -78,7 +73,8 @@ class CounterCore:
         self.history = []
 
     def total(self):
-        return sum(self.counts)
+        """Sum of the keys that have a note (same as the CSV "Total" column)."""
+        return sum(self.counts[d] for d in self.export_keys())
 
     def window(self):
         base = self.hour * 60 + self.minute
@@ -90,7 +86,7 @@ class CounterCore:
         return [d for d in ORDER if (self.notes[d] or "").strip()]
 
     def header(self):
-        return ["Start Time", "End Time"] + [self.notes[d].strip() for d in self.export_keys()] + ["Tổng"]
+        return ["Start Time", "End Time"] + [self.notes[d].strip() for d in self.export_keys()] + ["Total"]
 
     def row(self):
         start, end = self.window()
@@ -246,24 +242,27 @@ def run_ui(csv_path, keypad_only):
             root.after(140, lambda: b.configure(bg=ACCENT_DIM, fg=ACCENT))
 
     # ---------- global key listener ----------
-    # Every key event reaches on_press, but only digits are acted on: nothing
-    # else is stored, logged or sent anywhere.
+    # Every key event reaches on_press, but a key that is not a digit is dropped
+    # on the first check: it is never stored, logged or sent anywhere. Only
+    # digit keys are tracked (in `down`, to ignore auto-repeat while held).
     def on_press(key):
         vk = getattr(key, "vk", None)
         ch = getattr(key, "char", None)
-        ident = vk if vk is not None else ch
-        if ident in down:
-            return  # ignore auto-repeat while a key is held
-        down.add(ident)
         digit = None
         if vk in KEYPAD_VK:
             digit = KEYPAD_VK[vk]
         elif not keypad_only and ch is not None and len(ch) == 1 and ch in "0123456789":
             digit = int(ch)
-        if digit is not None:
-            events.put(digit)
+        if digit is None:
+            return  # not a digit: ignore completely
+        ident = vk if vk is not None else ch
+        if ident in down:
+            return  # auto-repeat while the key is held
+        down.add(ident)
+        events.put(digit)
 
     def on_release(key):
+        # Only removes an entry that on_press added for a digit; stores nothing.
         vk = getattr(key, "vk", None)
         ch = getattr(key, "char", None)
         down.discard(vk if vk is not None else ch)
@@ -445,6 +444,8 @@ def main():
                     help="CSV file to append to (default: counts_survey.csv next to this script)")
     ap.add_argument("--keypad-only", action="store_true", help="count only the numeric keypad, not the top digit row")
     args = ap.parse_args()
+    if sys.platform != "darwin":
+        sys.exit("Numpad Cycle Counter currently supports macOS only.")
     try:
         run_ui(args.out, args.keypad_only)
     except ImportError as err:
